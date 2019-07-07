@@ -1,0 +1,278 @@
+POST twitter/_doc/1
+{
+  "user":"GB",
+  "uid":1,
+  "city":"Beijing",
+  "country":"China"
+}
+
+
+GET twitter/_doc/1
+
+PUT twitter/_doc/1
+{
+  "user":"GB",
+  "uid":1,
+  "city":"北京",
+  "province":"北京",
+  "country":"中国",
+  "location":{
+    "lat":"29.8394",
+    "lon":"30.2388"
+  }
+}
+
+POST twitter/_update_by_query
+{
+  "script":{
+    "source":"ctx._source.city=params.city;ctx._source.province=params.province;",
+    "params":{
+      "city":"上海",
+      "province":"上海"
+    }
+  },
+  "query":{
+    "match":{
+      "user":"GB"
+    }
+  }
+}
+
+DELETE twitter
+
+POST _bulk
+{ "index":{ "_index":"twitter"}}
+{"user":"掌声","message":"今天下雨","uid":1, "age":10,"city":"北京","province":"北京","country":"北京","address":"北京市海淀区","location":{"lat":"29.8394","lon":"31.2388"}}
+{ "index":{ "_index":"twitter"}}
+{"user":"地方","message":"东方各国瓜分","uid":1, "age":20,"city":"上海","province":"上海","country":"上海","address":"上海浦东新区","location":{"lat":"29.8394","lon":"21.2388"}}
+{ "index":{ "_index":"twitter"}}
+{"user":"一样","message":"今天下雨","uid":1, "age":30,"city":"北京","province":"北京","country":"北京","address":"北京市海淀区","location":{"lat":"28.8394","lon":"30.2388"}}
+
+GET twitter/_search
+
+GET twitter/_mapping
+
+PUT twitter
+{
+  "settings": {"number_of_shards": 1}
+}
+
+PUT twitter/_mapping
+{
+  "properties":{
+    "address":{
+      "type":"text",
+      "fields":{
+        "keyword":{
+          "type":"keyword",
+          "ignore_above":256
+        }
+      }
+    },
+    "city":{
+      "type": "keyword"
+    },
+    "location":{
+      "type": "geo_point"
+    }
+    
+  }
+}
+
+GET twitter/_search
+{
+  "query": {
+    "match": {
+      "city": "北京"
+    }
+  }
+}
+
+GET twitter/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "city": "北京"
+          }
+        },{
+          "match": {
+            "age": "20"
+          }
+        }
+      ]
+    }
+  }
+}
+
+GET twitter/_search
+{
+  "query":{
+    "bool":{
+      "must_not": [
+        {"match": {
+          "city": "北京"
+        }}
+      ]
+    }
+  }
+}
+
+GET twitter/_search
+{
+  "query":{
+    "bool":{
+      "should": [
+        {"match": {
+          "city": "北京"
+        }}
+      ]
+    }
+  }
+}
+
+GET twitter/_count
+{
+  "query": {
+    "bool": {
+      "should": [
+        {"match": {
+          "city": "北京"
+        }}
+      ]
+    }
+  }
+}
+
+GET twitter/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {"match": {
+          "address": "北京"
+        }}
+      ]
+    }
+  },
+  "post_filter": {
+    "geo_distance": {
+      "distance": "10000km",
+      "location": {
+        "lat": 29.83,
+        "lon": 31.2388
+      }
+    }
+  },
+  "sort": [
+    {
+      "_geo_distance": {
+        "location": {
+          "lat": 28.83,
+          "lon": 30.23
+        }, 
+        "order": "asc",
+        "unit": "km"
+      }
+    }
+  ]
+}
+
+GET twitter/_search
+{
+  "query": {
+    "range": {
+      "age": {
+        "gte": 10,
+        "lte": 20
+      }
+    }
+  }
+}
+
+GET twitter/_search
+{
+  "query": {
+    "match": {
+      "message": "瓜"
+    }
+  }
+}
+
+#不区分大小写
+GET twitter/_search
+{
+  "query": {
+    "match_phrase": {
+      "message": "瓜"
+    }
+  },
+  "highlight": {
+    "fields": {
+      "message": {}
+    }
+  }
+}
+
+#聚合操作aggregation    范围搜索  size 代表是否显示结果信息
+GET twitter/_search
+{
+  "size": 0, 
+  "aggs": {
+    "age": {
+      "range":{
+        "field":"age",
+        "ranges":[
+          {
+            "from":10,
+            "to":19
+          },{
+            "from":20,
+            "to":29
+          },{
+            "from":30,
+            "to":39
+          }
+          ]
+      }
+    }
+  }
+}
+
+#演示分组
+GET twitter/_search
+{
+  "size": 0,
+  "aggs": {
+    "city": {
+      "terms": {
+        "field":"city",
+        "size":10
+      }
+    }
+  }
+}
+
+#分词
+GET twitter/_analyze
+{
+  "text": ["happy.birthday"],
+  "analyzer": "standard"
+}
+
+#分词
+GET twitter/_analyze
+{
+  "text": ["happy.birthday"],
+  "analyzer": "simple"
+}
+
+#自定义分词
+GET twitter/_analyze
+{
+  "text": ["happy birthday"],
+  "tokenizer": "standard",
+  "filter": ["uppercase"]
+}
